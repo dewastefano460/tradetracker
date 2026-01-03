@@ -1,34 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react'
+import { supabase } from './supabaseClient'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    // Memanggil tabel 'table_test' yang baru kamu buat
+    const { data: result, error } = await supabase
+      .from('table_test')
+      .select('*')
+
+    if (error) {
+      console.error('Error:', error)
+    } else {
+      setData(result)
+    }
+    setLoading(false)
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div style={{ padding: '40px', fontFamily: 'Arial' }}>
+      <h1>Tes Koneksi Supabase</h1>
+      <h3>Daftar ID dari table_test:</h3>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <ul>
+          {data.length > 0 ? (
+            data.map((item) => (
+              <li key={item.id}>
+                ID: <strong>{item.id}</strong> - Dibuat pada: {item.created_at}
+              </li>
+            ))
+          ) : (
+            <p>Data tidak muncul? Cek pengaturan RLS di Supabase.</p>
+          )}
+        </ul>
+      )}
+    </div>
   )
 }
 
