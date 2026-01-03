@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { cn } from '../lib/utils';
@@ -86,9 +87,9 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-lg bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="w-full max-w-lg bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-modal-enter">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
@@ -199,7 +200,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
 
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

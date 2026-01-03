@@ -77,7 +77,7 @@ const Configuration = () => {
     if (loading) return <div className="p-8 text-center text-text-secondary">Loading configuration...</div>;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20">
+        <div className="max-w-4xl mx-auto space-y-8 pb-20 page-enter">
 
             {/* Header */}
             <div>
@@ -97,7 +97,7 @@ const Configuration = () => {
             <form onSubmit={handleSubmit} className="space-y-8">
 
                 {/* Account Parameters Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm space-y-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm space-y-6 group hover-card">
                     <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
                         <div className="w-10 h-10 bg-blue-50 text-brand-blue rounded-lg flex items-center justify-center">
                             <Wallet size={20} />
@@ -142,7 +142,7 @@ const Configuration = () => {
                 </div>
 
                 {/* Symbol Settings Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm space-y-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm space-y-6 group hover-card">
                     <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
                         <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
                             <RefreshCcw size={20} />

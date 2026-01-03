@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -36,9 +37,9 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="w-full max-w-2xl bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-modal-enter">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
@@ -52,54 +53,106 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
                 </div>
 
                 {/* Content */}
-                <form onSubmit={handleSubmit} className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">Pair</label>
-                            <input type="text" name="pair" value={newTrade.pair} onChange={handleInputChange} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" placeholder="XAUUSD" required />
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pair</label>
+                            <input
+                                type="text"
+                                name="pair"
+                                value={newTrade.pair}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="XAUUSD"
+                                required
+                            />
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">Open Price</label>
-                            <input type="number" name="op" value={newTrade.op} onChange={handleInputChange} step="any" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-brand-blue outline-none" placeholder="0.00" required />
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Open Price</label>
+                            <input
+                                type="number"
+                                name="op"
+                                value={newTrade.op}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="0.00"
+                            />
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">Stop Loss</label>
-                            <input type="number" name="sl" value={newTrade.sl} onChange={handleInputChange} step="any" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-red-500 outline-none" placeholder="0.00" />
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Stop Loss</label>
+                            <input
+                                type="number"
+                                name="sl"
+                                value={newTrade.sl}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="0.00"
+                            />
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">Target</label>
-                            <input type="number" name="ft" value={newTrade.ft} onChange={handleInputChange} step="any" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-green-500 outline-none" placeholder="0.00" />
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Target</label>
+                            <input
+                                type="number"
+                                name="ft"
+                                value={newTrade.ft}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="0.00"
+                            />
                         </div>
-                        <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">Before Chart (URL)</label>
-                            <input type="url" name="img_before" value={newTrade.img_before} onChange={handleInputChange} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-purple-500 outline-none" placeholder="https://..." />
+                    </div>
+                    <div className="space-y-4 pt-2 border-t border-slate-100">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Before Chart (URL)</label>
+                            <input
+                                type="text"
+                                name="img_before"
+                                value={newTrade.img_before}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="https://..."
+                            />
                         </div>
-                        <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-xs font-semibold text-text-secondary uppercase">After Chart (URL)</label>
-                            <input type="url" name="img_after" value={newTrade.img_after} onChange={handleInputChange} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-purple-500 outline-none" placeholder="https://..." />
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">After Chart (URL)</label>
+                            <input
+                                type="text"
+                                name="img_after"
+                                value={newTrade.img_after}
+                                onChange={handleInputChange}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all placeholder:text-gray-300"
+                                placeholder="https://..."
+                            />
                         </div>
                     </div>
 
-                    <div className="pt-6 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <div className="flex justify-end gap-3 pt-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2.5 rounded-lg text-text-secondary hover:bg-gray-50 font-medium transition-colors"
+                            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-text-secondary hover:bg-slate-100 hover:text-text-primary transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] hover:bg-[#1e40af] text-white rounded-lg font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/40 transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] hover:bg-[#1e40af] text-white rounded-lg text-sm font-semibold shadow-lg shadow-blue-500/30 transition-all transform active:scale-[0.98] disabled:opacity-50"
                         >
-                            <Plus size={18} />
-                            {saving ? 'Adding...' : 'Add Position'}
+                            {saving ? (
+                                <>Saving...</>
+                            ) : (
+                                <>
+                                    <Plus size={18} />
+                                    Add Position
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

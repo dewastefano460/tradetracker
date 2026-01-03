@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const Modal = ({ isOpen, onClose, content }) => {
@@ -17,9 +18,9 @@ const Modal = ({ isOpen, onClose, content }) => {
         return url.match(/\.(jpeg|jpg|gif|png)$/) != null || url.includes('tradingview.com/x/') || url.includes('ibb.co');
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="relative w-full max-w-6xl h-[85vh] bg-surface rounded-xl flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="relative w-full max-w-6xl h-[85vh] bg-surface rounded-xl flex flex-col overflow-hidden shadow-2xl animate-modal-enter">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
                     <h3 className="text-text-primary font-medium truncate max-w-lg">{content}</h3>
@@ -52,7 +53,8 @@ const Modal = ({ isOpen, onClose, content }) => {
 
             {/* Backdrop click to close */}
             <div className="absolute inset-0 -z-10" onClick={onClose} />
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -33,22 +33,18 @@ const Performance = () => {
             if (!user) return;
 
             // Fetch profile for initial balance and risk percentage
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('initial_balance, risk_per_trade_percent')
-                .eq('id', user.id)
-                .single();
+            // Fetch profile and trades in parallel
+            const [profileResult, tradesResult] = await Promise.all([
+                supabase.from('profiles').select('initial_balance, risk_per_trade_percent').eq('id', user.id).single(),
+                supabase.from('trades').select('*').in('status', ['closed', 'done']).eq('user_id', user.id).order('close_date', { ascending: true })
+            ]);
+
+            const profileData = profileResult.data;
+            const allTrades = tradesResult.data;
+            const error = tradesResult.error; // Check trades error primarily
 
             const initialBalance = profileData?.initial_balance || 1000;
             const riskPercent = profileData?.risk_per_trade_percent || 1;
-
-            // Fetch ALL closed/done trades ordered by close_date
-            const { data: allTrades, error } = await supabase
-                .from('trades')
-                .select('*')
-                .in('status', ['closed', 'done'])
-                .eq('user_id', user.id)
-                .order('close_date', { ascending: true });
 
             if (error) throw error;
 
@@ -179,7 +175,7 @@ const Performance = () => {
     const isPositive = stats.currentBalance >= stats.initialBalance;
 
     return (
-        <div className="space-y-8 pb-12">
+        <div className="space-y-8 pb-12 page-enter">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -236,8 +232,8 @@ const Performance = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden">
-                    <div className="absolute right-4 top-4 opacity-10">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover-card">
+                    <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                         <DollarSign size={48} className="text-[#2563eb]" />
                     </div>
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Current Balance</p>
@@ -249,8 +245,8 @@ const Performance = () => {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden">
-                    <div className="absolute right-4 top-4 opacity-10">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover-card">
+                    <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                         <TrendingUp size={48} className="text-[#2563eb]" />
                     </div>
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Total Net Profit</p>
@@ -262,8 +258,8 @@ const Performance = () => {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden">
-                    <div className="absolute right-4 top-4 opacity-10">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover-card">
+                    <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                         <Target size={48} className="text-[#2563eb]" />
                     </div>
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Win Rate</p>
@@ -275,8 +271,8 @@ const Performance = () => {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden">
-                    <div className="absolute right-4 top-4 opacity-10">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover-card">
+                    <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                         <Award size={48} className="text-[#2563eb]" />
                     </div>
                     <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Total Trades</p>
@@ -321,6 +317,8 @@ const Performance = () => {
                                 stroke={isPositive ? "#2563eb" : "#ef4444"}
                                 strokeWidth={3}
                                 fill="url(#colorBalance)"
+                                animationDuration={2000}
+                                animationEasing="ease-out"
                             />
                         </AreaChart>
                     </ResponsiveContainer>

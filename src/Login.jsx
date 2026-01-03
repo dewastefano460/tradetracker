@@ -30,7 +30,7 @@ export default function Login() {
             {/* Left Side - Brand Area */}
             <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#2563eb] via-[#3b82f6] to-[#1e40af] flex-col justify-center items-center text-white p-12 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0"></div>
-                <div className="relative z-10 text-center max-w-md">
+                <div className="relative z-10 text-center max-w-md page-enter">
                     <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-8 border border-white/20 shadow-xl">
                         <BarChart2 size={32} className="text-white" />
                     </div>
@@ -45,7 +45,7 @@ export default function Login() {
             </div>
 
             {/* Right Side - Form Area */}
-            <div className="flex-1 flex flex-col justify-center items-center p-8 lg:p-12 bg-surface">
+            <div className="flex-1 flex flex-col justify-center items-center p-8 lg:p-12 bg-surface page-enter">
                 <div className="w-full max-w-sm space-y-8">
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 lg:hidden mb-8">
