@@ -1,49 +1,47 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import Login from './Login'
+import DashboardLayout from './layouts/DashboardLayout'
+import Configuration from './pages/Configuration'
+import RunningTrades from './pages/RunningTrades'
 
 function App() {
-  const [data, setData] = useState([])
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchData()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchData() {
-    // Memanggil tabel 'table_test' yang baru kamu buat
-    const { data: result, error } = await supabase
-      .from('table_test')
-      .select('*')
+  if (loading) {
+    return <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">Loading...</div>
+  }
 
-    if (error) {
-      console.error('Error:', error)
-    } else {
-      setData(result)
-    }
-    setLoading(false)
+  if (!session) {
+    return <Login />
   }
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'Arial' }}>
-      <h1>Tes Koneksi Supabase</h1>
-      <h3>Daftar ID dari table_test:</h3>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <ul>
-          {data.length > 0 ? (
-            data.map((item) => (
-              <li key={item.id}>
-                ID: <strong>{item.id}</strong> - Dibuat pada: {item.created_at}
-              </li>
-            ))
-          ) : (
-            <p>Data tidak muncul? Cek pengaturan RLS di Supabase.</p>
-          )}
-        </ul>
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<RunningTrades />} />
+          <Route path="history" element={<div className="text-white">History Component Coming Soon</div>} />
+          <Route path="performance" element={<div className="text-white">Performance Component Coming Soon</div>} />
+          <Route path="configuration" element={<Configuration />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
