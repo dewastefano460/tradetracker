@@ -17,9 +17,9 @@ const Sidebar = () => {
     ];
 
     return (
-        <div className="flex flex-col h-screen w-64 bg-surface border-r border-white/10 text-white">
-            <div className="p-6 border-b border-white/10">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+        <div className="flex flex-col h-screen w-64 bg-surface border-r border-text-muted/20 text-text-primary shadow-sm">
+            <div className="p-6 border-b border-text-muted/20">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                     TradeTracker
                 </h1>
             </div>
@@ -31,26 +31,30 @@ const Sidebar = () => {
                         to={item.path}
                         className={({ isActive }) =>
                             cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group font-medium",
                                 isActive
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                                    ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-100"
+                                    : "text-text-secondary hover:bg-gray-50 hover:text-text-primary"
                             )
                         }
                     >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.name}</span>
+                        {({ isActive }) => (
+                            <>
+                                <item.icon className={cn("w-5 h-5", isActive ? "text-blue-600" : "text-text-secondary")} />
+                                <span>{item.name}</span>
+                            </>
+                        )}
                     </NavLink>
                 ))}
             </nav>
 
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-text-muted/20">
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
                 >
                     <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Logout</span>
+                    <span>Logout</span>
                 </button>
             </div>
         </div>

@@ -18,26 +18,26 @@ const Modal = ({ isOpen, onClose, content }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="relative w-full max-w-6xl h-[85vh] bg-surface rounded-xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-6xl h-[85vh] bg-surface rounded-xl flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-surface/50">
-                    <h3 className="text-white font-medium truncate">{content}</h3>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+                    <h3 className="text-text-primary font-medium truncate max-w-lg">{content}</h3>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-gray-100 rounded-lg text-text-secondary hover:text-text-primary transition-colors"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-background overflow-hidden relative">
+                <div className="flex-1 bg-gray-50 overflow-hidden relative flex items-center justify-center">
                     {isImage(content) ? (
                         <img
                             src={content}
                             alt="Trade Screenshot"
-                            className="w-full h-full object-contain"
+                            className="max-w-full max-h-full object-contain"
                         />
                     ) : (
                         <iframe
