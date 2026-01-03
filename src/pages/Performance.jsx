@@ -42,56 +42,84 @@ const Performance = () => {
             const initialBalance = profileData?.initial_balance || 1000;
             const riskPercent = profileData?.risk_per_trade_percent || 1;
 
-            // Calculate date range based on period filter
-            let startDate = null;
-            const endDate = new Date().toISOString();
-
-            if (periodFilter === '1M') {
-                startDate = new Date();
-                startDate.setMonth(startDate.getMonth() - 1);
-                startDate = startDate.toISOString();
-            } else if (periodFilter === '3M') {
-                startDate = new Date();
-                startDate.setMonth(startDate.getMonth() - 3);
-                startDate = startDate.toISOString();
-            } else if (periodFilter === 'Custom') {
-                startDate = new Date(customYear, customMonth - 1, 1).toISOString();
-                const lastDay = new Date(customYear, customMonth, 0, 23, 59, 59);
-                // For custom, set endDate to end of selected month
-            }
-
-            // Fetch all closed/done trades ordered by close_date
-            let query = supabase
+            // Fetch ALL closed/done trades ordered by close_date
+            const { data: allTrades, error } = await supabase
                 .from('trades')
                 .select('*')
                 .in('status', ['closed', 'done'])
-                .eq('user_id', user.id);
-
-            if (startDate) {
-                query = query.gte('close_date', startDate);
-            }
-
-            const { data: tradesData, error } = await query.order('close_date', { ascending: true });
+                .eq('user_id', user.id)
+                .order('close_date', { ascending: true });
 
             if (error) throw error;
 
-            // Calculate equity curve
-            let runningBalance = initialBalance;
+            // Calculate Date Range Logic
+            let periodStartDate = null;
+            let periodEndDate = new Date();
+            periodEndDate.setHours(23, 59, 59, 999); // End of today
+
+            if (periodFilter === '1M') {
+                periodStartDate = new Date();
+                periodStartDate.setMonth(periodStartDate.getMonth() - 1);
+                periodStartDate.setHours(0, 0, 0, 0);
+            } else if (periodFilter === '3M') {
+                periodStartDate = new Date();
+                periodStartDate.setMonth(periodStartDate.getMonth() - 3);
+                periodStartDate.setHours(0, 0, 0, 0);
+            } else if (periodFilter === 'Custom') {
+                periodStartDate = new Date(customYear, customMonth - 1, 1);
+                periodStartDate.setHours(0, 0, 0, 0);
+                periodEndDate = new Date(customYear, customMonth, 0, 23, 59, 59, 999);
+            }
+
+            // Filter trades and Calculate Starting Balance for the period
+            let periodTrades = [];
+            let startingBalance = initialBalance;
+
+            if (periodFilter === 'All' || !periodStartDate) {
+                periodTrades = allTrades || [];
+            } else {
+                // Calculate balance accumulated BEFORE the period starts
+                const tradesBefore = (allTrades || []).filter(t => {
+                    const dateToUse = t.close_date || t.open_date;
+                    return dateToUse ? new Date(dateToUse) < periodStartDate : false;
+                });
+                const profitBefore = tradesBefore.reduce((sum, t) => {
+                    // Using current risk snapshot logic: result * risk_usd, or approximate if risk_usd is missing
+                    // For consistency with All view which uses static risk calculation:
+                    const tradeRiskUsd = t.risk_usd || (initialBalance * (riskPercent / 100)); // Fallback logic
+                    return sum + (t.result * tradeRiskUsd);
+                }, 0);
+
+                startingBalance += profitBefore;
+
+                // Filter trades WITHIN the period
+                periodTrades = (allTrades || []).filter(t => {
+                    const dateToUse = t.close_date || t.open_date;
+                    if (!dateToUse) return false;
+                    const d = new Date(dateToUse);
+                    return d >= periodStartDate && d <= periodEndDate;
+                });
+            }
+
+            // Calculate equity curve for the period
+            let runningBalance = startingBalance;
             const equity = [
                 {
                     date: 'Start',
-                    balance: initialBalance,
+                    balance: startingBalance,
                     trade: 0
                 }
             ];
 
-            tradesData?.forEach((trade, index) => {
-                // Calculate actual dollar value from R (result)
-                const dollarValue = trade.result * (initialBalance * (riskPercent / 100));
+            periodTrades.forEach((trade, index) => {
+                // Calculate dollar value. 
+                // IMPORTANT: Use trade.risk_usd if available for accuracy, fallback to static calculation
+                const dollarValue = (trade.result || 0) * (trade.risk_usd || (initialBalance * (riskPercent / 100)));
                 runningBalance += dollarValue;
 
+                const displayDate = trade.close_date || trade.open_date || new Date().toISOString();
                 equity.push({
-                    date: new Date(trade.close_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+                    date: new Date(displayDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
                     balance: runningBalance,
                     trade: index + 1,
                     result: trade.result,
@@ -101,15 +129,15 @@ const Performance = () => {
 
             setEquityData(equity);
 
-            // Calculate statistics
-            const totalNetProfit = tradesData?.reduce((sum, t) => sum + (t.result || 0), 0) || 0;
-            const winningTrades = tradesData?.filter(t => t.result > 0).length || 0;
-            const losingTrades = tradesData?.filter(t => t.result < 0).length || 0;
-            const totalTrades = tradesData?.length || 0;
+            // Calculate statistics for the period
+            const totalNetProfit = periodTrades.reduce((sum, t) => sum + (t.result || 0), 0);
+            const winningTrades = periodTrades.filter(t => t.result > 0).length;
+            const losingTrades = periodTrades.filter(t => t.result < 0).length;
+            const totalTrades = periodTrades.length;
             const winRate = totalTrades > 0 ? ((winningTrades / totalTrades) * 100) : 0;
 
             setStats({
-                initialBalance,
+                initialBalance: startingBalance, // Use period start balance for correct growth % calculation
                 currentBalance: runningBalance,
                 totalNetProfit,
                 totalTrades,

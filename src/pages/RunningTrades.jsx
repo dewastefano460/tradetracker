@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Camera, Eye, Plus, Edit2, Wallet, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Camera, Eye, Plus, Edit2, Wallet, Activity, ArrowUpRight, ArrowDownRight, Target, TrendingUp } from 'lucide-react';
 import Modal from '../components/Modal';
 import EditTradeModal from '../components/EditTradeModal';
 import AddTradeModal from '../components/AddTradeModal';
@@ -9,8 +9,12 @@ import { cn } from '../lib/utils';
 const RunningTrades = () => {
     const [trades, setTrades] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState({ pair_prefix: '', pair_suffix: '', risk_per_trade_percent: 1 });
+    const [profile, setProfile] = useState({ pair_prefix: '', pair_suffix: '', risk_per_trade_percent: 1, initial_balance: 0 });
     const [filterStatus, setFilterStatus] = useState('All');
+    // Metrics States
+    const [realizedProfit, setRealizedProfit] = useState(0);
+    const [totalClosedCount, setTotalClosedCount] = useState(0);
+    const [winCount, setWinCount] = useState(0);
 
     // Modal States
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -31,14 +35,59 @@ const RunningTrades = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: profileData } = await supabase.from('profiles').select('pair_prefix, pair_suffix, risk_per_trade_percent').eq('id', user.id).single();
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('pair_prefix, pair_suffix, risk_per_trade_percent, initial_balance')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError) {
+                console.error('Profile error:', profileError);
+            }
+
             if (profileData) setProfile(profileData);
 
-            const { data: tradesData, error } = await supabase.from('trades').select('*').in('status', ['running', 'unfill', 'be']).eq('user_id', user.id).order('open_date', { ascending: false });
+            const { data: tradesData, error } = await supabase
+                .from('trades')
+                .select('*')
+                .in('status', ['running', 'unfill', 'be'])
+                .eq('user_id', user.id)
+                .order('open_date', { ascending: false });
+
             if (error) throw error;
-            setTrades(tradesData || []);
+
+            // Fetch Closed Trades for Balance Calculation
+            const { data: closedTradesData, error: closedError } = await supabase
+                .from('trades')
+                .select('result, risk_usd')
+                .in('status', ['closed', 'done'])
+                .eq('user_id', user.id);
+
+            if (closedError) console.error('Error fetching closed trades:', closedError);
+
+            // Calculate Metrics from DB
+            const closedTrades = closedTradesData || [];
+            const totalProfit = closedTrades.reduce((sum, t) => sum + ((t.result || 0) * (t.risk_usd || 0)), 0);
+            const wins = closedTrades.filter(t => (t.result || 0) > 0).length;
+
+            setRealizedProfit(totalProfit);
+            setTotalClosedCount(closedTrades.length);
+            setWinCount(wins);
+
+            // Normalize trade data to ensure all fields have valid values
+            const normalizedTrades = (tradesData || []).map(trade => ({
+                ...trade,
+                result: trade.result || 0,
+                risk_usd: trade.risk_usd || 0,
+                op: trade.op || 0,
+                sl: trade.sl || 0,
+                ft: trade.ft || 0
+            }));
+
+            setTrades(normalizedTrades);
         } catch (error) {
             console.error('Error fetching data:', error);
+            setTrades([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
@@ -51,27 +100,61 @@ const RunningTrades = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
+            // Ensure profile has required data
+            const initialBalance = profile.initial_balance || 0;
+            const riskPercent = profile.risk_per_trade_percent || 1;
+
+            if (initialBalance === 0) {
+                alert('Please set your initial balance in Configuration first.');
+                setSaving(false);
+                return;
+            }
+
+            // Calculate Realized Balance (Initial Balance + Closed Trades Profit)
+            const { data: closedTrades } = await supabase
+                .from('trades')
+                .select('result, risk_usd')
+                .in('status', ['closed', 'done'])
+                .eq('user_id', user.id);
+
+            const totalClosedProfit = closedTrades?.reduce((sum, t) => sum + ((t.result || 0) * (t.risk_usd || 0)), 0) || 0;
+            const realizedBalance = initialBalance + totalClosedProfit;
+
+            // Calculate risk_usd for this new trade (snapshot)
+            const riskUsd = realizedBalance * (riskPercent / 100);
+
             const tradeData = {
                 user_id: user.id,
                 pair: newTrade.pair.toUpperCase(),
                 op: parseFloat(newTrade.op) || 0,
                 sl: parseFloat(newTrade.sl) || 0,
                 ft: parseFloat(newTrade.ft) || 0,
-                img_before: newTrade.img_before,
-                img_after: newTrade.img_after,
+                img_before: newTrade.img_before || '',
+                img_after: newTrade.img_after || '',
                 result: 0,
-                status: 'unfill', // Default status changed to Unfill
+                risk_usd: riskUsd, // Save snapshot
+                status: 'unfill',
                 open_date: new Date().toISOString()
             };
 
             const { data, error } = await supabase.from('trades').insert([tradeData]).select().single();
             if (error) throw error;
 
-            setTrades([data, ...trades]);
+            // Normalize the new trade data
+            const normalizedTrade = {
+                ...data,
+                result: data.result || 0,
+                risk_usd: data.risk_usd || 0,
+                op: data.op || 0,
+                sl: data.sl || 0,
+                ft: data.ft || 0
+            };
+
+            setTrades([normalizedTrade, ...trades]);
             setAddModalOpen(false);
         } catch (error) {
             console.error('Error adding trade:', error);
-            alert('Gagal menambahkan trade.');
+            alert('Gagal menambahkan trade: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -81,6 +164,8 @@ const RunningTrades = () => {
         // Remove if status is closed or cancel
         if (['closed', 'cancel'].includes(updatedTrade.status)) {
             setTrades(trades.filter(t => t.id !== updatedTrade.id));
+            // Refresh detailed metrics (balance, wins, etc) from DB
+            fetchProfileAndTrades();
         } else {
             setTrades(trades.map(t => t.id === updatedTrade.id ? updatedTrade : t));
         }
@@ -92,13 +177,53 @@ const RunningTrades = () => {
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
     const getStatusLabel = (status) => status === 'be' ? 'G.F. Target' : status;
 
-    // Derived Calculations
+    // Derived Calculations with Compounding Logic
     const filteredTrades = filterStatus === 'All'
         ? trades
         : trades.filter(t => filterStatus === 'G.F. Target' ? t.status === 'be' : t.status.toLowerCase() === filterStatus.toLowerCase());
 
-    const totalResult = trades.reduce((sum, trade) => sum + (trade.result || 0), 0);
-    const percentageReturn = totalResult * (profile.risk_per_trade_percent || 1);
+    // Calculate Realized Balance (from closed trades only) - with safe guards
+    let realizedBalance = 0;
+    let realizedBalancePercent = 0;
+    let nextTradeRisk = 0;
+    let totalFloatingR = 0;
+    let totalFloatingUsd = 0;
+    let totalClosedTrades = 0;
+    let winningTrades = 0;
+    let winRate = 0;
+
+    try {
+        // Use fetched metrics for closed trades calculation
+        const totalClosedProfitUsd = realizedProfit; // FROM STATE
+
+        const initialBalance = Number(profile.initial_balance) || 0;
+        realizedBalance = initialBalance + totalClosedProfitUsd;
+        realizedBalancePercent = initialBalance > 0
+            ? ((realizedBalance - initialBalance) / initialBalance) * 100
+            : 0;
+
+        // Next Trade Risk (based on current realized balance)
+        const riskPercent = Number(profile.risk_per_trade_percent) || 1;
+        nextTradeRisk = realizedBalance * (riskPercent / 100);
+
+        // Floating PnL (from running/unfill trades)
+        const floatingTrades = trades.filter(t => t.status === 'running' || t.status === 'unfill' || t.status === 'be');
+        totalFloatingR = floatingTrades.reduce((sum, t) => sum + (Number(t.result) || 0), 0);
+        totalFloatingUsd = floatingTrades.reduce((sum, t) => {
+            const result = Number(t.result) || 0;
+            const riskUsd = Number(t.risk_usd) || 0;
+            return sum + (result * riskUsd);
+        }, 0);
+
+        // Account Stats
+        totalClosedTrades = totalClosedCount; // FROM STATE
+        winningTrades = winCount; // FROM STATE
+        winRate = totalClosedTrades > 0 ? (winningTrades / totalClosedTrades) * 100 : 0;
+    } catch (error) {
+        console.error('Error in calculations:', error);
+        console.log('Profile:', profile);
+        console.log('Trades:', trades);
+    }
 
 
     return (
@@ -143,39 +268,82 @@ const RunningTrades = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Total PNL Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Card 1: Realized Balance (Equity) */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
                     <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                        <Wallet size={80} className="text-primary" />
+                        <Wallet size={80} className="text-[#2563eb]" />
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Total Floating PnL</p>
-                        <div className="flex items-baseline gap-3 relative z-10">
-                            <h2 className="text-3xl font-bold text-text-primary font-mono">
-                                {totalResult > 0 ? '+' : ''}{totalResult.toFixed(2)}R
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Current Balance</p>
+                        <div className="flex flex-col gap-1 relative z-10">
+                            <h2 className={cn("text-3xl font-bold font-mono", realizedBalance >= (profile.initial_balance || 0) ? "text-[#2563eb]" : "text-rose-600")}>
+                                ${realizedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h2>
                             <span className={cn(
-                                "px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1",
-                                totalResult >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                "text-xs font-semibold",
+                                realizedBalancePercent >= 0 ? "text-[#2563eb]" : "text-rose-600"
                             )}>
-                                {totalResult >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                {Math.abs(percentageReturn).toFixed(1)}%
+                                {realizedBalancePercent > 0 ? '+' : ''}{realizedBalancePercent.toFixed(2)}% from initial
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Active Positions Card */}
+                {/* Card 2: Next Trade Risk */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
                     <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
-                        <Activity size={80} className="text-primary" />
+                        <TrendingUp size={80} className="text-[#2563eb]" />
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Active Positions</p>
-                        <div className="flex items-baseline gap-2 relative z-10">
-                            <h2 className="text-3xl font-bold text-text-primary font-mono">{trades.length}</h2>
-                            <span className="text-text-secondary text-sm font-medium">trades open</span>
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Next Trade Risk</p>
+                        <div className="flex flex-col gap-1 relative z-10">
+                            <h2 className="text-3xl font-bold text-[#2563eb] font-mono">
+                                ${nextTradeRisk.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </h2>
+                            <span className="text-xs font-semibold text-text-secondary">
+                                {profile.risk_per_trade_percent || 1}% of Current Balance
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 3: Floating PnL */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                        <Activity size={80} className="text-[#2563eb]" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Total Floating PnL</p>
+                        <div className="flex flex-col gap-1 relative z-10">
+                            <h2 className={cn(
+                                "text-3xl font-bold font-mono",
+                                totalFloatingR > 0 ? "text-[#2563eb]" : totalFloatingR < 0 ? "text-rose-600" : "text-text-secondary"
+                            )}>
+                                {totalFloatingR > 0 ? '+' : ''}{totalFloatingR.toFixed(2)}R
+                            </h2>
+                            <span className={cn(
+                                "text-xs font-semibold",
+                                totalFloatingUsd >= 0 ? "text-[#2563eb]" : "text-rose-600"
+                            )}>
+                                {totalFloatingUsd > 0 ? '+' : ''}${Math.abs(totalFloatingUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 4: Account Stats */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                        <Target size={80} className="text-[#2563eb]" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Account Stats</p>
+                        <div className="flex flex-col gap-1 relative z-10">
+                            <h2 className="text-3xl font-bold text-text-primary font-mono">{totalClosedTrades}</h2>
+                            <span className="text-xs font-semibold text-text-secondary">
+                                Win Rate: {winRate.toFixed(1)}% ({winningTrades}W)
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -242,11 +410,18 @@ const RunningTrades = () => {
                                             </div>
                                         </td>
 
-                                        <td className={cn(
-                                            "px-6 py-5 text-right font-bold text-base font-mono",
-                                            trade.result > 0 ? "text-emerald-600" : trade.result < 0 ? "text-rose-600" : "text-text-secondary"
-                                        )}>
-                                            {trade.result > 0 ? '+' : ''}{trade.result.toFixed(2)}R
+                                        <td className="px-6 py-5 text-right">
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                <span className={cn(
+                                                    "font-bold text-base font-mono",
+                                                    (trade.result || 0) > 0 ? "text-[#2563eb]" : (trade.result || 0) < 0 ? "text-rose-600" : "text-text-secondary"
+                                                )}>
+                                                    {(trade.result || 0) > 0 ? '+' : ''}{(trade.result || 0).toFixed(2)}R
+                                                </span>
+                                                <span className="text-xs text-text-secondary font-medium">
+                                                    ${((trade.result || 0) * (trade.risk_usd || 0)).toFixed(2)}
+                                                </span>
+                                            </div>
                                         </td>
 
                                         <td className="px-6 py-5 text-right">
@@ -269,9 +444,19 @@ const RunningTrades = () => {
                         {trades.length > 0 && (
                             <tfoot className="bg-slate-50 border-t border-slate-200">
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Result (Running)</td>
-                                    <td className={cn("px-6 py-4 text-right font-bold text-lg font-mono", totalResult >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                        {totalResult > 0 ? '+' : ''}{totalResult.toFixed(2)}R
+                                    <td colSpan="7" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Floating</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex flex-col items-end gap-0.5">
+                                            <span className={cn(
+                                                "font-bold text-lg font-mono",
+                                                totalFloatingR > 0 ? "text-[#2563eb]" : totalFloatingR < 0 ? "text-rose-600" : "text-text-secondary"
+                                            )}>
+                                                {totalFloatingR > 0 ? '+' : ''}{totalFloatingR.toFixed(2)}R
+                                            </span>
+                                            <span className="text-xs text-text-secondary font-medium">
+                                                ${Math.abs(totalFloatingUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td colSpan="2"></td>
                                 </tr>
@@ -279,8 +464,8 @@ const RunningTrades = () => {
                         )}
                     </table>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

@@ -51,11 +51,23 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                 onUpdate({ ...trade, status: 'cancel' }); // Signal to parent to remove from list
             } else {
                 // Otherwise, update the trade
+                // Logic for Close Date
+                let finalCloseDate = null; // Default to NULL
+
+                if (formData.close_date) {
+                    // If user manually selected a date, use it
+                    finalCloseDate = new Date(formData.close_date).toISOString();
+                } else if (formData.status === 'closed' || formData.status === 'done') {
+                    // If closing without date, AUTO FILL with today
+                    finalCloseDate = new Date().toISOString();
+                }
+                // If status is running/unfill/be AND no date selected, finalCloseDate remains null (correct for DB)
+
                 const updates = {
                     status: formData.status,
                     result: parseFloat(formData.result),
                     img_after: formData.img_after,
-                    close_date: formData.close_date ? new Date(formData.close_date).toISOString() : null
+                    close_date: finalCloseDate
                 };
 
                 const { error } = await supabase.from('trades').update(updates).eq('id', trade.id);
