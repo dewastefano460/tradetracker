@@ -18,7 +18,7 @@ const Modal = ({ isOpen, onClose, content }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="relative w-full max-w-6xl h-[85vh] bg-surface rounded-xl flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">

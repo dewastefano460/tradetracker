@@ -1,22 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, LineChart, Settings, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, History, LineChart, Settings, LogOut } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { cn } from '../lib/utils';
 
 const Navbar = () => {
-    const [userEmail, setUserEmail] = useState('Trader');
-
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                // Get name from email (before @)
-                const name = user.email.split('@')[0];
-                // Capitalize first letter
-                setUserEmail(name.charAt(0).toUpperCase() + name.slice(1));
-            }
-        });
-    }, []);
+    const userEmail = 'Dewa'; // Static name
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -30,38 +19,38 @@ const Navbar = () => {
     ];
 
     return (
-        <div className="bg-surface border-b border-gray-200 sticky top-0 z-40">
+        <nav className="glass-panel sticky top-0 z-50 w-full shadow-soft transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
 
                     {/* Logo & Nav Links */}
-                    <div className="flex">
+                    <div className="flex items-center gap-8">
                         <div className="flex-shrink-0 flex items-center gap-2">
-                            <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center text-white font-bold">
-                                T
+                            <div className="w-8 h-8 bg-[#2563eb] rounded-lg flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                                <span className="font-bold text-lg">T</span>
                             </div>
-                            <span className="font-bold text-xl text-brand-dark tracking-tight">TradeCore</span>
+                            <span className="font-bold text-xl text-text-primary tracking-tight">TradeCore</span>
                         </div>
 
-                        <div className="hidden sm:ml-10 sm:flex sm:space-x-1">
+                        <div className="hidden md:flex items-baseline space-x-1">
                             {navItems.map((item) => (
                                 <NavLink
                                     key={item.path}
                                     to={item.path}
                                     className={({ isActive }) =>
                                         cn(
-                                            "inline-flex items-center px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200",
+                                            "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
                                             isActive
-                                                ? "border-brand-blue text-brand-blue"
-                                                : "border-transparent text-text-secondary hover:text-text-primary hover:border-gray-300"
+                                                ? "bg-blue-50 text-[#2563eb] font-semibold"
+                                                : "text-text-secondary hover:bg-slate-50 hover:text-text-primary"
                                         )
                                     }
                                 >
                                     {({ isActive }) => (
-                                        <span className="flex items-center gap-2">
-                                            <item.icon className={cn("w-4 h-4", isActive ? "text-brand-blue" : "text-text-secondary")} />
+                                        <>
+                                            <item.icon className={cn("w-[18px] h-[18px]", isActive ? "text-[#2563eb]" : "text-text-secondary group-hover:text-text-primary")} />
                                             {item.name}
-                                        </span>
+                                        </>
                                     )}
                                 </NavLink>
                             ))}
@@ -70,27 +59,32 @@ const Navbar = () => {
 
                     {/* Right Side: User & Logout */}
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-2 text-sm font-medium text-text-primary">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-brand-blue">
-                                <User size={16} />
-                            </div>
-                            <span>{userEmail}</span>
-                        </div>
-
-                        <div className="h-6 w-px bg-gray-200 mx-2"></div>
-
-                        <button
-                            onClick={handleLogout}
-                            className="text-text-secondary hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50"
-                            title="Logout"
-                        >
-                            <LogOut size={20} />
+                        <button className="p-2 rounded-full text-text-secondary hover:text-primary hover:bg-primary/5 transition-colors">
+                            <span className="sr-only">Notifications</span>
+                            {/* Placeholder for notification icon if needed, or just keep layout */}
                         </button>
+
+                        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                            <div className="hidden sm:flex flex-col items-end">
+                                <span className="text-sm font-semibold text-text-primary leading-none">{userEmail}</span>
+                                <span className="text-xs text-[#2563eb] font-medium mt-1">Pro Account</span>
+                            </div>
+                            <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-[#2563eb] font-bold ring-2 ring-white shadow-sm">
+                                {userEmail.charAt(0)}
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="ml-2 text-text-secondary hover:text-danger p-2 rounded-full hover:bg-red-50 transition-colors"
+                                title="Logout"
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        </div>
                     </div>
 
                 </div>
             </div>
-        </div>
+        </nav>
     );
 };
 

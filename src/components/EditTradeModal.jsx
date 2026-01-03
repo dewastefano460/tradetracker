@@ -23,6 +23,14 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
         }
     }, [trade]);
 
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -36,18 +44,25 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
         setSaving(true);
 
         try {
-            const updates = {
-                status: formData.status,
-                result: parseFloat(formData.result),
-                img_after: formData.img_after,
-                close_date: formData.close_date ? new Date(formData.close_date).toISOString() : null
-            };
+            // If status is 'cancel', delete the trade
+            if (formData.status === 'cancel') {
+                const { error } = await supabase.from('trades').delete().eq('id', trade.id);
+                if (error) throw error;
+                onUpdate({ ...trade, status: 'cancel' }); // Signal to parent to remove from list
+            } else {
+                // Otherwise, update the trade
+                const updates = {
+                    status: formData.status,
+                    result: parseFloat(formData.result),
+                    img_after: formData.img_after,
+                    close_date: formData.close_date ? new Date(formData.close_date).toISOString() : null
+                };
 
-            const { error } = await supabase.from('trades').update(updates).eq('id', trade.id);
+                const { error } = await supabase.from('trades').update(updates).eq('id', trade.id);
+                if (error) throw error;
+                onUpdate({ ...trade, ...updates });
+            }
 
-            if (error) throw error;
-
-            onUpdate({ ...trade, ...updates });
             onClose();
         } catch (error) {
             console.error('Error updating trade:', error);
@@ -60,7 +75,7 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="w-full max-w-lg bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
                 {/* Header */}
@@ -163,7 +178,7 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-[#1e3e94] hover:bg-[#152c6b] text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] hover:bg-[#1e40af] text-white rounded-lg font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/40 transition-all active:scale-[0.98] disabled:opacity-50"
                         >
                             <Save size={18} />
                             {saving ? 'Saving...' : 'Save Changes'}

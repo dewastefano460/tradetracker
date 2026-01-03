@@ -7,24 +7,35 @@ export default {
     theme: {
         extend: {
             colors: {
-                background: '#f8fafc', // Slate-50
-                surface: '#ffffff',     // White
-                brand: {
-                    blue: '#1e3e94',    // Specific User Request (Deep Blue)
-                    dark: '#0f172a',    // Darker Headers
-                    gray: '#f1f5f9',    // Backgrounds
+                primary: '#2563eb',      // Blue 600
+                'primary-dark': '#1e40af', // Blue 800
+                'primary-light': '#dbeafe', // Blue 100
+
+                background: {
+                    DEFAULT: '#f8fafc', // Slate 50
+                    dark: '#0f172a',
+                },
+                surface: {
+                    DEFAULT: '#ffffff',
+                    dark: '#1e293b',
                 },
                 text: {
-                    primary: '#0f172a',   // Slate-900
-                    secondary: '#64748b', // Slate-500
-                    muted: '#cbd5e1'      // Slate-300
+                    primary: '#0f172a',   // Slate 900
+                    secondary: '#64748b', // Slate 500
+                    muted: '#94a3b8'      // Slate 400
                 },
-                // Semantic aliases
-                primary: '#1e3e94',
-                secondary: '#64748b',
-                accent: '#f59e0b',
-                danger: '#ef4444',
-                success: '#22c55e'
+                // Legacy support / Aliases
+                brand: {
+                    blue: '#2563eb',
+                }
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+                display: ['Inter', 'sans-serif'],
+            },
+            boxShadow: {
+                'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                'glow': '0 0 15px rgba(37, 99, 235, 0.3)',
             }
         },
     },

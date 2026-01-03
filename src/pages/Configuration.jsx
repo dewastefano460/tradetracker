@@ -183,7 +183,7 @@ const Configuration = () => {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 bg-[#1e3e94] hover:bg-[#152c6b] text-white font-semibold px-8 py-3 rounded-lg transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-md hover:shadow-lg"
+                        className="flex items-center gap-2 bg-[#2563eb] hover:bg-[#1e40af] text-white font-semibold px-8 py-3 rounded-lg transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40"
                     >
                         <Save size={18} />
                         {saving ? 'Saving Config...' : 'Save Configuration'}

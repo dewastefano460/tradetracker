@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -11,6 +11,14 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
         img_before: '',
         img_after: ''
     });
+
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -29,7 +37,7 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="w-full max-w-2xl bg-white rounded-xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
                 {/* Header */}
@@ -83,7 +91,7 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-[#1e3e94] hover:bg-[#152c6b] text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[#2563eb] hover:bg-[#1e40af] text-white rounded-lg font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/40 transition-all active:scale-[0.98] disabled:opacity-50"
                         >
                             <Plus size={18} />
                             {saving ? 'Adding...' : 'Add Position'}

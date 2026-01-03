@@ -28,7 +28,7 @@ export default function Login() {
     return (
         <div className="flex min-h-screen font-sans bg-surface">
             {/* Left Side - Brand Area */}
-            <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#1e3e94] to-[#0f172a] flex-col justify-center items-center text-white p-12 relative overflow-hidden">
+            <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#2563eb] via-[#3b82f6] to-[#1e40af] flex-col justify-center items-center text-white p-12 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0"></div>
                 <div className="relative z-10 text-center max-w-md">
                     <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-8 border border-white/20 shadow-xl">
@@ -49,7 +49,7 @@ export default function Login() {
                 <div className="w-full max-w-sm space-y-8">
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 lg:hidden mb-8">
-                            <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center text-white font-bold">T</div>
+                            <div className="w-8 h-8 bg-[#2563eb] rounded-lg flex items-center justify-center text-white font-bold">T</div>
                             <span className="font-bold text-xl text-brand-dark">TradeCore</span>
                         </div>
                         <h2 className="text-3xl font-bold text-text-primary tracking-tight">
@@ -69,7 +69,7 @@ export default function Login() {
                                     placeholder="name@company.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-gray-400 text-text-primary bg-white"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb] outline-none transition-all placeholder:text-gray-400 text-text-primary bg-white"
                                     required
                                 />
                             </div>
@@ -80,7 +80,7 @@ export default function Login() {
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-gray-400 text-text-primary bg-white"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#2563eb] focus:ring-1 focus:ring-[#2563eb] outline-none transition-all placeholder:text-gray-400 text-text-primary bg-white"
                                     required
                                 />
                             </div>
@@ -89,10 +89,10 @@ export default function Login() {
                         {!isSignUp && (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <input id="remember" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
+                                    <input id="remember" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-[#2563eb] focus:ring-[#2563eb]" />
                                     <label htmlFor="remember" className="ml-2 block text-sm text-text-secondary">Remember me</label>
                                 </div>
-                                <button type="button" className="text-sm font-medium text-brand-blue hover:text-blue-700">
+                                <button type="button" className="text-sm font-medium text-[#2563eb] hover:text-[#1e40af]">
                                     Forgot password?
                                 </button>
                             </div>
@@ -101,7 +101,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3 px-4 bg-[#1e3e94] hover:bg-[#152c6b] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-50 flex items-center justify-center"
+                            className="w-full py-3 px-4 bg-[#2563eb] hover:bg-[#1e40af] text-white font-semibold rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all transform active:scale-[0.98] disabled:opacity-50 flex items-center justify-center"
                         >
                             {loading ? (
                                 <span className="animate-pulse">Loading...</span>
@@ -116,7 +116,7 @@ export default function Login() {
                         <button
                             type="button"
                             onClick={() => setIsSignUp(!isSignUp)}
-                            className="font-medium text-brand-blue hover:text-blue-700 transition-colors"
+                            className="font-medium text-[#2563eb] hover:text-[#1e40af] transition-colors"
                         >
                             {isSignUp ? "Sign In" : "Create an account"}
                         </button>

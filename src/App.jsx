@@ -5,6 +5,8 @@ import Login from './Login'
 import DashboardLayout from './layouts/DashboardLayout'
 import Configuration from './pages/Configuration'
 import RunningTrades from './pages/RunningTrades'
+import TradeHistory from './pages/TradeHistory'
+import Performance from './pages/Performance'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -36,8 +38,8 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<RunningTrades />} />
-          <Route path="history" element={<div className="text-white">History Component Coming Soon</div>} />
-          <Route path="performance" element={<div className="text-white">Performance Component Coming Soon</div>} />
+          <Route path="history" element={<TradeHistory />} />
+          <Route path="performance" element={<Performance />} />
           <Route path="configuration" element={<Configuration />} />
         </Route>
       </Routes>
