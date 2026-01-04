@@ -36,11 +36,11 @@ export default function Login() {
                     </div>
                     <h1 className="text-4xl font-bold mb-4 tracking-tight">Professional Trading Analytics</h1>
                     <p className="text-blue-100 text-lg leading-relaxed">
-                        Securely access your trading journal, monitor performance metrics, and analyze your edge with TradeCore's institutional-grade platform.
+                        Securely access your trading journal, monitor performance metrics, and analyze your edge with TradeTracker's institutional-grade platform.
                     </p>
                 </div>
                 <div className="absolute bottom-8 text-blue-200 text-sm">
-                    © 2026 TradeCore Inc. All rights reserved.
+                    © 2026 TradeTracker Inc. All rights reserved.
                 </div>
             </div>
 
@@ -50,7 +50,7 @@ export default function Login() {
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 lg:hidden mb-8">
                             <div className="w-8 h-8 bg-[#2563eb] rounded-lg flex items-center justify-center text-white font-bold">T</div>
-                            <span className="font-bold text-xl text-brand-dark">TradeCore</span>
+                            <span className="font-bold text-xl text-brand-dark">TradeTracker</span>
                         </div>
                         <h2 className="text-3xl font-bold text-text-primary tracking-tight">
                             {isSignUp ? "Create an account" : "Welcome Back"}

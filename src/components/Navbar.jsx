@@ -30,7 +30,7 @@ const Navbar = () => {
                             <div className="w-8 h-8 bg-[#2563eb] rounded-lg flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                                 <span className="font-bold text-lg">T</span>
                             </div>
-                            <span className="font-bold text-xl text-text-primary tracking-tight">TradeCore</span>
+                            <span className="font-bold text-xl text-text-primary tracking-tight">TradeTracker</span>
                         </div>
 
                         {/* Desktop Menu */}
