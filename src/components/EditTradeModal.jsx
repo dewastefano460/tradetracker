@@ -41,8 +41,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
             [name]: name === 'result' ? parseFloat(value) || 0 : value
         }));
 
-        // If user changes status away from cancel, hide the warning
-        if (name === 'status' && value !== 'cancel') {
+        // If user changes status away from delete, hide the warning
+        if (name === 'status' && value !== 'delete') {
             setShowDeleteConfirm(false);
         }
     };
@@ -50,13 +50,13 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
     const performSave = async () => {
         setSaving(true);
         try {
-            // If status is 'cancel', delete the trade
-            if (formData.status === 'cancel') {
+            // If status is 'delete', delete the trade from database
+            if (formData.status === 'delete') {
                 const { error } = await supabase.from('trades').delete().eq('id', trade.id);
                 if (error) throw error;
-                onUpdate({ ...trade, status: 'cancel' });
+                onUpdate({ ...trade, status: 'delete' }); // Signal removal
             } else {
-                // Otherwise, update the trade
+                // Otherwise, update the trade (including 'cancel' status)
                 let finalCloseDate = null;
 
                 if (formData.close_date) {
@@ -89,8 +89,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Safety Check for Cancel
-        if (formData.status === 'cancel' && !showDeleteConfirm) {
+        // Safety Check for Delete
+        if (formData.status === 'delete' && !showDeleteConfirm) {
             setShowDeleteConfirm(true);
             return;
         }
@@ -111,9 +111,9 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
                             <AlertTriangle className="text-red-600 w-8 h-8" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Konfirmasi Cancel Trade</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Konfirmasi Hapus Trade</h3>
                         <p className="text-text-secondary mb-8 max-w-xs">
-                            Apakah anda ingin melakukan cancel trade ini? Data trade akan dihapus permanen.
+                            Apakah anda ingin menghapus trade ini? Data trade akan dihapus permanen dari database.
                         </p>
                         <div className="flex gap-3 w-full max-w-xs">
                             <button
@@ -128,7 +128,7 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                 onClick={performSave}
                                 className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all active:scale-[0.98]"
                             >
-                                Ya, Cancel
+                                Ya, Hapus
                             </button>
                         </div>
                     </div>
@@ -168,14 +168,16 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                 onChange={handleChange}
                                 className={cn(
                                     "w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-text-primary focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all font-medium cursor-pointer",
-                                    formData.status === 'cancel' && "border-red-300 text-red-600 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                                    formData.status === 'delete' && "border-red-300 text-red-600 bg-red-50 focus:border-red-500 focus:ring-red-500"
                                 )}
                             >
+                                <option value="pending">Belum Entry</option>
                                 <option value="unfill">Unfill</option>
                                 <option value="running">Running</option>
                                 <option value="be">Ganti Final Target</option>
                                 <option value="closed">Done</option>
-                                <option value="cancel" className="font-bold text-red-600 bg-red-50">Cancel (Hapus)</option>
+                                <option value="cancel">Cancel</option>
+                                <option value="delete" className="font-bold text-red-600 bg-red-50">Hapus</option>
                             </select>
                         </div>
 
@@ -189,13 +191,13 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                     value={formData.result}
                                     onChange={(e) => setFormData({ ...formData, result: e.target.value })}
                                     step="0.01"
-                                    disabled={formData.status === 'cancel'}
+                                    disabled={formData.status === 'delete'}
                                     className={cn(
                                         "w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 outline-none transition-all focus:ring-1 font-bold",
                                         formData.result > 0 ? "text-green-600 border-green-200 focus:border-green-500 focus:ring-green-500" :
                                             formData.result < 0 ? "text-red-600 border-red-200 focus:border-red-500 focus:ring-red-500" :
                                                 "text-text-primary focus:border-brand-blue focus:ring-brand-blue",
-                                        formData.status === 'cancel' && "opacity-50 cursor-not-allowed bg-gray-50"
+                                        formData.status === 'delete' && "opacity-50 cursor-not-allowed bg-gray-50"
                                     )}
                                     placeholder="0.00"
                                 />
@@ -208,10 +210,10 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                     name="close_date"
                                     value={formData.close_date}
                                     onChange={handleChange}
-                                    disabled={formData.status === 'cancel'}
+                                    disabled={formData.status === 'delete'}
                                     className={cn(
                                         "w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-text-primary focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all",
-                                        formData.status === 'cancel' && "opacity-50 cursor-not-allowed bg-gray-50"
+                                        formData.status === 'delete' && "opacity-50 cursor-not-allowed bg-gray-50"
                                     )}
                                 />
                             </div>
@@ -225,10 +227,10 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                 name="img_after"
                                 value={formData.img_after}
                                 onChange={handleChange}
-                                disabled={formData.status === 'cancel'}
+                                disabled={formData.status === 'delete'}
                                 className={cn(
                                     "w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-text-primary focus:border-brand-blue focus:ring-1 focus:ring-brand-blue outline-none transition-all placeholder:text-gray-300",
-                                    formData.status === 'cancel' && "opacity-50 cursor-not-allowed bg-gray-50"
+                                    formData.status === 'delete' && "opacity-50 cursor-not-allowed bg-gray-50"
                                 )}
                                 placeholder="https://tradingview.com/..."
                             />
@@ -248,13 +250,13 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                             disabled={saving}
                             className={cn(
                                 "flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-semibold shadow-xl transition-all active:scale-[0.98] disabled:opacity-50",
-                                formData.status === 'cancel'
+                                formData.status === 'delete'
                                     ? "bg-red-600 hover:bg-red-700 shadow-red-500/20"
                                     : "bg-[#2563eb] hover:bg-[#1e40af] shadow-blue-500/20"
                             )}
                         >
                             <Save size={18} />
-                            {saving ? 'Saving...' : formData.status === 'cancel' ? 'Delete Trade' : 'Save Changes'}
+                            {saving ? 'Saving...' : formData.status === 'delete' ? 'Hapus Trade' : 'Save Changes'}
                         </button>
                     </div>
 

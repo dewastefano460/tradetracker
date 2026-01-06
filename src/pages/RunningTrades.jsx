@@ -38,7 +38,7 @@ const RunningTrades = () => {
             // Parallel Fetch: Profile, Running Trades, Closed Trades Summary
             const [profileResult, tradesResult, closedResult] = await Promise.all([
                 supabase.from('profiles').select('pair_prefix, pair_suffix, risk_per_trade_percent, initial_balance').eq('id', user.id).single(),
-                supabase.from('trades').select('*').in('status', ['running', 'unfill', 'be']).eq('user_id', user.id).order('open_date', { ascending: false }),
+                supabase.from('trades').select('*').in('status', ['running', 'unfill', 'be', 'pending', 'cancel']).eq('user_id', user.id).order('open_date', { ascending: false }),
                 supabase.from('trades').select('result, risk_usd').in('status', ['closed', 'done']).eq('user_id', user.id)
             ]);
 
@@ -122,7 +122,7 @@ const RunningTrades = () => {
                 img_after: newTrade.img_after || '',
                 result: 0,
                 risk_usd: riskUsd, // Save snapshot
-                status: 'unfill',
+                status: 'pending',
                 open_date: new Date().toISOString()
             };
 
@@ -150,8 +150,8 @@ const RunningTrades = () => {
     };
 
     const handleUpdateTrade = (updatedTrade) => {
-        // Remove if status is closed or cancel
-        if (['closed', 'cancel'].includes(updatedTrade.status)) {
+        // Remove if status is closed, done, or delete
+        if (['closed', 'done', 'delete'].includes(updatedTrade.status)) {
             setTrades(trades.filter(t => t.id !== updatedTrade.id));
             // Refresh detailed metrics (balance, wins, etc) from DB
             fetchProfileAndTrades();
@@ -164,7 +164,7 @@ const RunningTrades = () => {
     const openEditModal = (trade) => { setSelectedTrade(trade); setEditModalOpen(true); };
     const formatPair = (pair) => `${profile.pair_prefix || ''}${pair}${profile.pair_suffix || ''}`;
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-    const getStatusLabel = (status) => status === 'be' ? 'G.F. Target' : status;
+    const getStatusLabel = (status) => status === 'be' ? 'G.F. Target' : status === 'pending' ? 'Belum Entry' : status;
 
     // Derived Calculations with Compounding Logic
     const filteredTrades = filterStatus === 'All'
@@ -195,8 +195,8 @@ const RunningTrades = () => {
         const riskPercent = Number(profile.risk_per_trade_percent) || 1;
         nextTradeRisk = realizedBalance * (riskPercent / 100);
 
-        // Floating PnL (from running/unfill trades)
-        const floatingTrades = trades.filter(t => t.status === 'running' || t.status === 'unfill' || t.status === 'be');
+        // Floating PnL (from running/unfill/pending/be trades, excluding cancel)
+        const floatingTrades = trades.filter(t => t.status === 'running' || t.status === 'unfill' || t.status === 'be' || t.status === 'pending');
         totalFloatingR = floatingTrades.reduce((sum, t) => sum + (Number(t.result) || 0), 0);
         totalFloatingUsd = floatingTrades.reduce((sum, t) => {
             const result = Number(t.result) || 0;
@@ -238,9 +238,11 @@ const RunningTrades = () => {
                                 className="appearance-none bg-white border border-slate-300 text-text-primary text-sm font-medium px-4 py-2 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer hover:bg-slate-50"
                             >
                                 <option value="All">All Status</option>
+                                <option value="pending">Belum Entry</option>
                                 <option value="running">Running</option>
                                 <option value="unfill">Unfill</option>
                                 <option value="G.F. Target">G.F. Target</option>
+                                <option value="cancel">Cancel</option>
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
                                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
@@ -373,12 +375,15 @@ const RunningTrades = () => {
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
 
+
                                             <td className="px-6 py-5">
                                                 <span className={cn(
                                                     "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize",
                                                     trade.status === 'running' ? "bg-blue-100 text-blue-700" :
                                                         trade.status === 'be' ? "bg-purple-100 text-purple-700" :
-                                                            "bg-slate-100 text-slate-700"
+                                                            trade.status === 'pending' ? "bg-amber-100 text-amber-700" :
+                                                                trade.status === 'cancel' ? "bg-red-100 text-red-700" :
+                                                                    "bg-slate-100 text-slate-700"
                                                 )}>
                                                     {getStatusLabel(trade.status)}
                                                 </span>
