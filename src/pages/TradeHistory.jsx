@@ -28,7 +28,7 @@ const TradeHistory = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Fetch running + closed/done trades for the selected month (based on open_date OR close_date)
+            // Fetch running + closed/done trades for the selected month (based on open_date ONLY)
             const startDate = new Date(selectedYear, selectedMonth - 1, 1).toISOString();
             const endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59).toISOString();
 
@@ -39,7 +39,8 @@ const TradeHistory = () => {
                     .select('*')
                     .in('status', ['running', 'closed', 'done'])
                     .eq('user_id', user.id)
-                    .or(`and(open_date.gte.${startDate},open_date.lte.${endDate}),and(close_date.gte.${startDate},close_date.lte.${endDate})`)
+                    .gte('open_date', startDate)
+                    .lte('open_date', endDate)
                     .order('open_date', { ascending: false })
             ]);
 
