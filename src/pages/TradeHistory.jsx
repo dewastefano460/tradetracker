@@ -17,6 +17,7 @@ const TradeHistory = () => {
     const currentDate = new Date();
     const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+    const [filterTimeframe, setFilterTimeframe] = useState('All');
 
     useEffect(() => {
         fetchProfileAndTrades();
@@ -60,10 +61,12 @@ const TradeHistory = () => {
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
     const getStatusLabel = (status) => status === 'be' ? 'G.F. Target' : status;
 
-    const totalResult = trades.reduce((sum, trade) => sum + (trade.result || 0), 0);
-    const winningTrades = trades.filter(t => t.result > 0).length;
-    const losingTrades = trades.filter(t => t.result < 0).length;
-    const winRate = trades.length > 0 ? ((winningTrades / trades.length) * 100).toFixed(1) : 0;
+    const filteredTrades = filterTimeframe === 'All' ? trades : trades.filter(t => t.timeframe === filterTimeframe);
+
+    const totalResult = filteredTrades.reduce((sum, trade) => sum + (trade.result || 0), 0);
+    const winningTrades = filteredTrades.filter(t => t.result > 0).length;
+    const losingTrades = filteredTrades.filter(t => t.result < 0).length;
+    const winRate = filteredTrades.length > 0 ? ((winningTrades / filteredTrades.length) * 100).toFixed(1) : 0;
 
     const handleExportCSV = () => {
         if (trades.length === 0) {
@@ -71,17 +74,23 @@ const TradeHistory = () => {
             return;
         }
 
-        const headers = ['No', 'Pair', 'OP', 'SL', 'TP', 'Status', 'Result (R)', 'Open Date', 'Close Date'];
-        const csvData = trades.map((trade, index) => [
+        const headers = ['No', 'Pair', 'Timeframe', 'OP', 'SL', 'TP', 'Status', 'Result (R)', 'Open Date', 'Close Date', 'Before Chart URL', 'After Chart URL'];
+        
+        const filteredForExport = filterTimeframe === 'All' ? trades : trades.filter(t => t.timeframe === filterTimeframe);
+        
+        const csvData = filteredForExport.map((trade, index) => [
             index + 1,
             formatPair(trade.pair),
+            trade.timeframe || '-',
             trade.op,
             trade.sl || '-',
             trade.ft || '-',
             getStatusLabel(trade.status),
             `${trade.result > 0 ? '+' : ''}${trade.result.toFixed(2)}R`,
             formatDate(trade.open_date),
-            formatDate(trade.close_date)
+            formatDate(trade.close_date),
+            trade.img_before ? `"${trade.img_before}"` : '-',
+            trade.img_after ? `"${trade.img_after}"` : '-'
         ]);
 
         const csvContent = [
@@ -116,6 +125,22 @@ const TradeHistory = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {/* Timeframe Filter */}
+                        <div className="relative">
+                            <select
+                                value={filterTimeframe}
+                                onChange={(e) => setFilterTimeframe(e.target.value)}
+                                className="appearance-none bg-white border border-slate-300 text-text-primary text-sm font-medium px-4 py-2 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all cursor-pointer hover:bg-slate-50"
+                            >
+                                <option value="All">All TF</option>
+                                <option value="15M">15M</option>
+                                <option value="1H">1H</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                            </div>
+                        </div>
+
                         {/* Month Filter */}
                         <div className="relative">
                             <select
@@ -163,7 +188,7 @@ const TradeHistory = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft group hover-card">
                         <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Total Trades</p>
-                        <h2 className="text-3xl font-bold text-text-primary font-mono">{trades.length}</h2>
+                        <h2 className="text-3xl font-bold text-text-primary font-mono">{filteredTrades.length}</h2>
                     </div>
 
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft group hover-card">
@@ -190,6 +215,7 @@ const TradeHistory = () => {
                                 <tr>
                                     <th className="px-6 py-4 font-semibold text-text-secondary w-16 uppercase text-xs tracking-wider">No</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Pair / Type</th>
+                                    <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TF</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">OP</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">SL</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TP</th>
@@ -202,16 +228,17 @@ const TradeHistory = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {loading ? (
-                                    <tr><td colSpan="10" className="text-center py-12 text-text-secondary">Loading trades...</td></tr>
-                                ) : trades.length === 0 ? (
-                                    <tr><td colSpan="10" className="text-center py-12 text-text-secondary">No trades found for {months[selectedMonth - 1]} {selectedYear}.</td></tr>
+                                    <tr><td colSpan="11" className="text-center py-12 text-text-secondary">Loading trades...</td></tr>
+                                ) : filteredTrades.length === 0 ? (
+                                    <tr><td colSpan="11" className="text-center py-12 text-text-secondary">No trades found for {months[selectedMonth - 1]} {selectedYear}.</td></tr>
                                 ) : (
-                                    trades.map((trade, index) => (
+                                    filteredTrades.map((trade, index) => (
                                         <tr key={trade.id} className="hover:bg-blue-50/50 transition-colors">
                                             <td className="px-6 py-5 text-text-secondary font-medium">{String(index + 1).padStart(2, '0')}</td>
                                             <td className="px-6 py-5">
                                                 <span className="block font-bold text-text-primary text-base">{formatPair(trade.pair)}</span>
                                             </td>
+                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.timeframe || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-text-secondary">{trade.op}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
@@ -254,10 +281,10 @@ const TradeHistory = () => {
                                     ))
                                 )}
                             </tbody>
-                            {trades.length > 0 && (
+                            {filteredTrades.length > 0 && (
                                 <tfoot className="bg-slate-50 border-t border-slate-200">
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Result</td>
+                                        <td colSpan="8" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Result</td>
                                         <td className={cn("px-6 py-4 text-right font-bold text-lg font-mono", totalResult >= 0 ? "text-[#2563eb]" : "text-rose-600")}>
                                             {totalResult > 0 ? '+' : ''}{totalResult.toFixed(2)}R
                                         </td>

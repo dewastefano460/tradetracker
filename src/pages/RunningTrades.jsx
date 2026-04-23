@@ -11,6 +11,7 @@ const RunningTrades = () => {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState({ pair_prefix: '', pair_suffix: '', risk_per_trade_percent: 1, initial_balance: 0 });
     const [filterStatus, setFilterStatus] = useState('All');
+    const [filterTimeframe, setFilterTimeframe] = useState('All');
     // Metrics States
     const [realizedProfit, setRealizedProfit] = useState(0);
     const [totalClosedCount, setTotalClosedCount] = useState(0);
@@ -70,7 +71,8 @@ const RunningTrades = () => {
                 risk_usd: trade.risk_usd || 0,
                 op: trade.op || 0,
                 sl: trade.sl || 0,
-                ft: trade.ft || 0
+                ft: trade.ft || 0,
+                timeframe: trade.timeframe || '15M'
             }));
 
             setTrades(normalizedTrades);
@@ -118,6 +120,7 @@ const RunningTrades = () => {
                 op: parseFloat(newTrade.op) || 0,
                 sl: parseFloat(newTrade.sl) || 0,
                 ft: parseFloat(newTrade.ft) || 0,
+                timeframe: newTrade.timeframe || '15M',
                 img_before: newTrade.img_before || '',
                 img_after: newTrade.img_after || '',
                 result: 0,
@@ -136,7 +139,8 @@ const RunningTrades = () => {
                 risk_usd: data.risk_usd || 0,
                 op: data.op || 0,
                 sl: data.sl || 0,
-                ft: data.ft || 0
+                ft: data.ft || 0,
+                timeframe: data.timeframe || '15M'
             };
 
             setTrades([normalizedTrade, ...trades]);
@@ -167,9 +171,11 @@ const RunningTrades = () => {
     const getStatusLabel = (status) => status === 'be' ? 'G.F. Target' : status === 'pending' ? 'Belum Entry' : status;
 
     // Derived Calculations with Compounding Logic
-    const filteredTrades = filterStatus === 'All'
-        ? trades
-        : trades.filter(t => filterStatus === 'G.F. Target' ? t.status === 'be' : t.status.toLowerCase() === filterStatus.toLowerCase());
+    const filteredTrades = trades.filter(t => {
+        const matchStatus = filterStatus === 'All' ? true : (filterStatus === 'G.F. Target' ? t.status === 'be' : t.status.toLowerCase() === filterStatus.toLowerCase());
+        const matchTimeframe = filterTimeframe === 'All' ? true : t.timeframe === filterTimeframe;
+        return matchStatus && matchTimeframe;
+    });
 
     // Calculate Realized Balance (from closed trades only) - with safe guards
     let realizedBalance = 0;
@@ -231,6 +237,22 @@ const RunningTrades = () => {
 
                     <div className="flex items-center gap-3">
                         {/* Status Filter Dropdown */}
+                        {/* Timeframe Filter Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={filterTimeframe}
+                                onChange={(e) => setFilterTimeframe(e.target.value)}
+                                className="appearance-none bg-white border border-slate-300 text-text-primary text-sm font-medium px-4 py-2 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer hover:bg-slate-50"
+                            >
+                                <option value="All">All TF</option>
+                                <option value="15M">15M</option>
+                                <option value="1H">1H</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                            </div>
+                        </div>
+
                         <div className="relative">
                             <select
                                 value={filterStatus}
@@ -349,6 +371,7 @@ const RunningTrades = () => {
                                 <tr>
                                     <th className="px-6 py-4 font-semibold text-text-secondary w-16 uppercase text-xs tracking-wider">No</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Pair / Type</th>
+                                    <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TF</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">OP</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">SL</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TP</th>
@@ -361,9 +384,9 @@ const RunningTrades = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {loading ? (
-                                    <tr><td colSpan="10" className="text-center py-12 text-text-secondary">Loading trades...</td></tr>
+                                    <tr><td colSpan="11" className="text-center py-12 text-text-secondary">Loading trades...</td></tr>
                                 ) : filteredTrades.length === 0 ? (
-                                    <tr><td colSpan="10" className="text-center py-12 text-text-secondary">No active positions to display.</td></tr>
+                                    <tr><td colSpan="11" className="text-center py-12 text-text-secondary">No active positions to display.</td></tr>
                                 ) : (
                                     filteredTrades.map((trade, index) => (
                                         <tr key={trade.id} className="hover:bg-blue-50/50 transition-colors group">
@@ -371,6 +394,7 @@ const RunningTrades = () => {
                                             <td className="px-6 py-5">
                                                 <span className="block font-bold text-text-primary text-base">{formatPair(trade.pair)}</span>
                                             </td>
+                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.timeframe || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-text-secondary">{trade.op}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
@@ -439,7 +463,7 @@ const RunningTrades = () => {
                             {trades.length > 0 && (
                                 <tfoot className="bg-slate-50 border-t border-slate-200">
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Floating</td>
+                                        <td colSpan="8" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Floating</td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex flex-col items-end gap-0.5">
                                                 <span className={cn(

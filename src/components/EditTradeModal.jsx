@@ -9,7 +9,10 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
         status: 'running',
         result: 0,
         img_after: '',
-        close_date: ''
+        close_date: '',
+        sl: '',
+        ft: '',
+        timeframe: '15M'
     });
     const [saving, setSaving] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -20,7 +23,10 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                 status: trade.status || 'running',
                 result: trade.result || 0,
                 img_after: trade.img_after || '',
-                close_date: trade.close_date ? new Date(trade.close_date).toISOString().split('T')[0] : ''
+                close_date: trade.close_date ? new Date(trade.close_date).toISOString().split('T')[0] : '',
+                sl: trade.sl || '',
+                ft: trade.ft || '',
+                timeframe: trade.timeframe || '15M'
             });
             setShowDeleteConfirm(false); // Reset warning when trade changes
         }
@@ -69,8 +75,19 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                     status: formData.status,
                     result: parseFloat(formData.result),
                     img_after: formData.img_after,
-                    close_date: finalCloseDate
+                    close_date: finalCloseDate,
+                    timeframe: formData.timeframe
                 };
+
+                // If status is 'be' (Ganti Final Target), update SL and FT if provided
+                if (formData.status === 'be') {
+                    if (formData.sl !== '') {
+                        updates.sl = parseFloat(formData.sl) || trade.sl;
+                    }
+                    if (formData.ft !== '') {
+                        updates.ft = parseFloat(formData.ft) || trade.ft;
+                    }
+                }
 
                 const { error } = await supabase.from('trades').update(updates).eq('id', trade.id);
                 if (error) throw error;
@@ -159,6 +176,21 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                     </div>
 
                     <div className="space-y-4">
+                        {/* Timeframe */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Timeframe</label>
+                            <div className="flex gap-6 mt-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="timeframe" value="15M" checked={formData.timeframe === '15M'} onChange={handleChange} disabled={formData.status === 'delete'} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">15M</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="timeframe" value="1H" checked={formData.timeframe === '1H'} onChange={handleChange} disabled={formData.status === 'delete'} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">1H</span>
+                                </label>
+                            </div>
+                        </div>
+
                         {/* Status */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">New Status</label>
@@ -180,6 +212,48 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                 <option value="delete" className="font-bold text-red-600 bg-red-50">Hapus</option>
                             </select>
                         </div>
+
+                        {/* Conditional: SL and FT fields for "Ganti Final Target" status */}
+                        {formData.status === 'be' && (
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-1 h-4 bg-purple-600 rounded-full"></div>
+                                    <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Update Target Prices</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-purple-700 uppercase tracking-wider">New SL</label>
+                                        <input
+                                            type="number"
+                                            name="sl"
+                                            value={formData.sl}
+                                            onChange={handleChange}
+                                            step="0.00001"
+                                            className="w-full bg-white border border-purple-300 rounded-lg px-4 py-2.5 text-text-primary focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all font-mono"
+                                            placeholder={trade?.sl ? `Current: ${trade.sl}` : "Enter new SL"}
+                                        />
+                                        <p className="text-xs text-purple-600">Current: {trade?.sl || '-'}</p>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-purple-700 uppercase tracking-wider">New TP</label>
+                                        <input
+                                            type="number"
+                                            name="ft"
+                                            value={formData.ft}
+                                            onChange={handleChange}
+                                            step="0.00001"
+                                            className="w-full bg-white border border-purple-300 rounded-lg px-4 py-2.5 text-text-primary focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all font-mono"
+                                            placeholder={trade?.ft ? `Current: ${trade.ft}` : "Enter new TP"}
+                                        />
+                                        <p className="text-xs text-purple-600">Current: {trade?.ft || '-'}</p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-purple-600 italic mt-2">
+                                    💡 Leave blank to keep current values
+                                </p>
+                            </div>
+                        )}
 
                         {/* Result & Close Date */}
                         <div className="grid grid-cols-2 gap-4">

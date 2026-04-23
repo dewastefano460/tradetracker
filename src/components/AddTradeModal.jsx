@@ -9,6 +9,7 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
         op: '',
         sl: '',
         ft: '',
+        timeframe: '15M',
         img_before: '',
         img_after: ''
     });
@@ -32,7 +33,7 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         onAdd(newTrade);
-        setNewTrade({ pair: '', op: '', sl: '', ft: '', img_before: '', img_after: '' });
+        setNewTrade({ pair: '', op: '', sl: '', ft: '', timeframe: '15M', img_before: '', img_after: '' });
     };
 
     if (!isOpen) return null;
@@ -66,6 +67,19 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
                                 placeholder="XAUUSD"
                                 required
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Timeframe</label>
+                            <div className="flex gap-6 mt-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="timeframe" value="15M" checked={newTrade.timeframe === '15M'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">15M</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="timeframe" value="1H" checked={newTrade.timeframe === '1H'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">1H</span>
+                                </label>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Open Price</label>
