@@ -412,7 +412,7 @@ const RunningTrades = () => {
                                                 <span className="block font-bold text-text-primary text-base">{formatPair(trade.pair)}</span>
                                             </td>
                                             <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.timeframe || '-'}</td>
-                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.risk_percent || 1}%</td>
+                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.risk_percent || 1}</td>
                                             <td className="px-6 py-5 font-mono text-text-secondary">{trade.op}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
