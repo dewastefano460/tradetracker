@@ -72,7 +72,8 @@ const RunningTrades = () => {
                 op: trade.op || 0,
                 sl: trade.sl || 0,
                 ft: trade.ft || 0,
-                timeframe: trade.timeframe || '15M'
+                timeframe: trade.timeframe || '15M',
+                risk_percent: trade.risk_percent || 1
             }));
 
             setTrades(normalizedTrades);
@@ -111,8 +112,9 @@ const RunningTrades = () => {
             const totalClosedProfit = closedTrades?.reduce((sum, t) => sum + ((t.result || 0) * (t.risk_usd || 0)), 0) || 0;
             const realizedBalance = initialBalance + totalClosedProfit;
 
-            // Calculate risk_usd for this new trade (snapshot)
-            const riskUsd = realizedBalance * (riskPercent / 100);
+            // Calculate risk_usd for this new trade (snapshot) using the PER-TRADE risk_percent
+            const tradeRiskPercent = parseFloat(newTrade.risk_percent) || 1;
+            const riskUsd = realizedBalance * (tradeRiskPercent / 100);
 
             const tradeData = {
                 user_id: user.id,
@@ -125,6 +127,7 @@ const RunningTrades = () => {
                 img_after: newTrade.img_after || '',
                 result: 0,
                 risk_usd: riskUsd, // Save snapshot
+                risk_percent: tradeRiskPercent,
                 status: 'pending',
                 open_date: new Date().toISOString()
             };
@@ -140,7 +143,8 @@ const RunningTrades = () => {
                 op: data.op || 0,
                 sl: data.sl || 0,
                 ft: data.ft || 0,
-                timeframe: data.timeframe || '15M'
+                timeframe: data.timeframe || '15M',
+                risk_percent: data.risk_percent || 1
             };
 
             setTrades([normalizedTrade, ...trades]);
@@ -181,7 +185,8 @@ const RunningTrades = () => {
     let realizedBalance = 0;
     let realizedBalancePercent = 0;
     let nextTradeRisk = 0;
-    let totalFloatingR = 0;
+    let totalFloatingChartR = 0;
+    let totalFloatingFinalR = 0;
     let totalFloatingUsd = 0;
     let totalClosedTrades = 0;
     let winningTrades = 0;
@@ -203,11 +208,17 @@ const RunningTrades = () => {
 
         // Floating PnL (from running/unfill/pending/be trades, excluding cancel)
         const floatingTrades = trades.filter(t => t.status === 'running' || t.status === 'unfill' || t.status === 'be' || t.status === 'pending');
-        totalFloatingR = floatingTrades.reduce((sum, t) => sum + (Number(t.result) || 0), 0);
+        totalFloatingChartR = floatingTrades.reduce((sum, t) => sum + (Number(t.result) || 0), 0);
+        totalFloatingFinalR = floatingTrades.reduce((sum, t) => sum + ((Number(t.result) || 0) * (Number(t.risk_percent) || 1)), 0);
         totalFloatingUsd = floatingTrades.reduce((sum, t) => {
-            const result = Number(t.result) || 0;
+            const chartResult = Number(t.result) || 0;
+            // The profit in USD is simply Chart Result * risk_usd snapshot
+            // Because risk_usd is already scaled by risk_percent.
+            // Wait, if Risk_USD is $10 (for 1% risk). Result is 2R. Profit is $20.
+            // If Risk_USD is $5 (for 0.5% risk). Result is 2R. Profit is $10. (Correct).
+            // So we don't multiply by risk_percent here, risk_usd has it baked in.
             const riskUsd = Number(t.risk_usd) || 0;
-            return sum + (result * riskUsd);
+            return sum + (chartResult * riskUsd);
         }, 0);
 
         // Account Stats
@@ -332,16 +343,21 @@ const RunningTrades = () => {
                             <div className="flex flex-col gap-1 relative z-10">
                                 <h2 className={cn(
                                     "text-3xl font-bold font-mono",
-                                    totalFloatingR > 0 ? "text-[#2563eb]" : totalFloatingR < 0 ? "text-rose-600" : "text-text-secondary"
+                                    totalFloatingFinalR > 0 ? "text-[#2563eb]" : totalFloatingFinalR < 0 ? "text-rose-600" : "text-text-secondary"
                                 )}>
-                                    {totalFloatingR > 0 ? '+' : ''}{totalFloatingR.toFixed(2)}R
+                                    {totalFloatingFinalR > 0 ? '+' : ''}{totalFloatingFinalR.toFixed(2)}R
                                 </h2>
-                                <span className={cn(
-                                    "text-xs font-semibold",
-                                    totalFloatingUsd >= 0 ? "text-[#2563eb]" : "text-rose-600"
-                                )}>
-                                    {totalFloatingUsd > 0 ? '+' : ''}${Math.abs(totalFloatingUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                        "text-xs font-semibold",
+                                        totalFloatingUsd >= 0 ? "text-[#2563eb]" : "text-rose-600"
+                                    )}>
+                                        {totalFloatingUsd > 0 ? '+' : ''}${Math.abs(totalFloatingUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                    <span className="text-xs text-text-secondary">
+                                        (Chart: {totalFloatingChartR > 0 ? '+' : ''}{totalFloatingChartR.toFixed(2)}R)
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -372,6 +388,7 @@ const RunningTrades = () => {
                                     <th className="px-6 py-4 font-semibold text-text-secondary w-16 uppercase text-xs tracking-wider">No</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Pair / Type</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TF</th>
+                                    <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Risk %</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">OP</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">SL</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TP</th>
@@ -395,6 +412,7 @@ const RunningTrades = () => {
                                                 <span className="block font-bold text-text-primary text-base">{formatPair(trade.pair)}</span>
                                             </td>
                                             <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.timeframe || '-'}</td>
+                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.risk_percent || 1}%</td>
                                             <td className="px-6 py-5 font-mono text-text-secondary">{trade.op}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
@@ -433,9 +451,12 @@ const RunningTrades = () => {
                                                 <div className="flex flex-col items-end gap-0.5">
                                                     <span className={cn(
                                                         "font-bold text-base font-mono",
-                                                        (trade.result || 0) > 0 ? "text-[#2563eb]" : (trade.result || 0) < 0 ? "text-rose-600" : "text-text-secondary"
+                                                        ((trade.result || 0) * (trade.risk_percent || 1)) > 0 ? "text-[#2563eb]" : ((trade.result || 0) * (trade.risk_percent || 1)) < 0 ? "text-rose-600" : "text-text-secondary"
                                                     )}>
-                                                        {(trade.result || 0) > 0 ? '+' : ''}{(trade.result || 0).toFixed(2)}R
+                                                        {((trade.result || 0) * (trade.risk_percent || 1)) > 0 ? '+' : ''}{((trade.result || 0) * (trade.risk_percent || 1)).toFixed(2)}R
+                                                    </span>
+                                                    <span className="text-xs text-text-secondary font-medium">
+                                                        Chart: {(trade.result || 0) > 0 ? '+' : ''}{(trade.result || 0).toFixed(2)}R
                                                     </span>
                                                     <span className="text-xs text-text-secondary font-medium">
                                                         ${((trade.result || 0) * (trade.risk_usd || 0)).toFixed(2)}
@@ -463,14 +484,14 @@ const RunningTrades = () => {
                             {trades.length > 0 && (
                                 <tfoot className="bg-slate-50 border-t border-slate-200">
                                     <tr>
-                                        <td colSpan="8" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Floating</td>
+                                        <td colSpan="9" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Floating</td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex flex-col items-end gap-0.5">
                                                 <span className={cn(
                                                     "font-bold text-lg font-mono",
-                                                    totalFloatingR > 0 ? "text-[#2563eb]" : totalFloatingR < 0 ? "text-rose-600" : "text-text-secondary"
+                                                    totalFloatingFinalR > 0 ? "text-[#2563eb]" : totalFloatingFinalR < 0 ? "text-rose-600" : "text-text-secondary"
                                                 )}>
-                                                    {totalFloatingR > 0 ? '+' : ''}{totalFloatingR.toFixed(2)}R
+                                                    {totalFloatingFinalR > 0 ? '+' : ''}{totalFloatingFinalR.toFixed(2)}R
                                                 </span>
                                                 <span className="text-xs text-text-secondary font-medium">
                                                     ${Math.abs(totalFloatingUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

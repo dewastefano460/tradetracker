@@ -64,9 +64,10 @@ const TradeHistory = () => {
 
     const filteredTrades = filterTimeframe === 'All' ? trades : trades.filter(t => t.timeframe === filterTimeframe);
 
-    const totalResult = filteredTrades.reduce((sum, trade) => sum + (trade.result || 0), 0);
-    const winningTrades = filteredTrades.filter(t => t.result > 0).length;
-    const losingTrades = filteredTrades.filter(t => t.result < 0).length;
+    const totalChartResult = filteredTrades.reduce((sum, trade) => sum + (trade.result || 0), 0);
+    const totalFinalResult = filteredTrades.reduce((sum, trade) => sum + ((trade.result || 0) * (trade.risk_percent || 1)), 0);
+    const winningTrades = filteredTrades.filter(t => (t.result * (t.risk_percent || 1)) > 0).length;
+    const losingTrades = filteredTrades.filter(t => (t.result * (t.risk_percent || 1)) < 0).length;
     const winRate = filteredTrades.length > 0 ? ((winningTrades / filteredTrades.length) * 100).toFixed(1) : 0;
 
     const handleExportCSV = () => {
@@ -75,24 +76,30 @@ const TradeHistory = () => {
             return;
         }
 
-        const headers = ['No', 'Pair', 'Timeframe', 'OP', 'SL', 'TP', 'Status', 'Result (R)', 'Open Date', 'Close Date', 'Before Chart URL', 'After Chart URL'];
+        const headers = ['No', 'Pair', 'Timeframe', 'Risk %', 'OP', 'SL', 'TP', 'Status', 'Chart R', 'Final R', 'Open Date', 'Close Date', 'Before Chart URL', 'After Chart URL'];
         
         const filteredForExport = filterTimeframe === 'All' ? trades : trades.filter(t => t.timeframe === filterTimeframe);
         
-        const csvData = filteredForExport.map((trade, index) => [
-            index + 1,
-            formatPair(trade.pair),
-            trade.timeframe || '-',
-            trade.op,
-            trade.sl || '-',
-            trade.ft || '-',
-            getStatusLabel(trade.status),
-            `${trade.result > 0 ? '+' : ''}${trade.result.toFixed(2)}R`,
-            formatDate(trade.open_date),
-            formatDate(trade.close_date),
-            trade.img_before ? `"${trade.img_before}"` : '-',
-            trade.img_after ? `"${trade.img_after}"` : '-'
-        ]);
+        const csvData = filteredForExport.map((trade, index) => {
+            const chartR = trade.result || 0;
+            const finalR = chartR * (trade.risk_percent || 1);
+            return [
+                index + 1,
+                formatPair(trade.pair),
+                trade.timeframe || '-',
+                `${trade.risk_percent || 1}%`,
+                trade.op,
+                trade.sl || '-',
+                trade.ft || '-',
+                getStatusLabel(trade.status),
+                `${chartR > 0 ? '+' : ''}${chartR.toFixed(2)}R`,
+                `${finalR > 0 ? '+' : ''}${finalR.toFixed(2)}R`,
+                formatDate(trade.open_date),
+                formatDate(trade.close_date),
+                trade.img_before ? `"${trade.img_before}"` : '-',
+                trade.img_after ? `"${trade.img_after}"` : '-'
+            ];
+        });
 
         const csvContent = [
             headers.join(','),
@@ -202,9 +209,12 @@ const TradeHistory = () => {
 
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-soft group hover-card">
                         <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Net Profit</p>
-                        <h2 className={cn("text-3xl font-bold font-mono", totalResult >= 0 ? "text-[#2563eb]" : "text-rose-600")}>
-                            {totalResult > 0 ? '+' : ''}{totalResult.toFixed(2)}R
+                        <h2 className={cn("text-3xl font-bold font-mono", totalFinalResult >= 0 ? "text-[#2563eb]" : "text-rose-600")}>
+                            {totalFinalResult > 0 ? '+' : ''}{totalFinalResult.toFixed(2)}R
                         </h2>
+                        <span className="text-xs text-text-secondary font-medium">
+                            Chart R: {totalChartResult > 0 ? '+' : ''}{totalChartResult.toFixed(2)}R
+                        </span>
                     </div>
                 </div>
 
@@ -217,6 +227,7 @@ const TradeHistory = () => {
                                     <th className="px-6 py-4 font-semibold text-text-secondary w-16 uppercase text-xs tracking-wider">No</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Pair / Type</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TF</th>
+                                    <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">Risk %</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">OP</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">SL</th>
                                     <th className="px-6 py-4 font-semibold text-text-secondary uppercase text-xs tracking-wider">TP</th>
@@ -240,6 +251,7 @@ const TradeHistory = () => {
                                                 <span className="block font-bold text-text-primary text-base">{formatPair(trade.pair)}</span>
                                             </td>
                                             <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.timeframe || '-'}</td>
+                                            <td className="px-6 py-5 font-bold text-text-secondary text-sm">{trade.risk_percent || 1}%</td>
                                             <td className="px-6 py-5 font-mono text-text-secondary">{trade.op}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.sl || '-'}</td>
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
@@ -269,11 +281,18 @@ const TradeHistory = () => {
                                                 </div>
                                             </td>
 
-                                            <td className={cn(
-                                                "px-6 py-5 text-right font-bold text-base font-mono",
-                                                trade.result > 0 ? "text-[#2563eb]" : trade.result < 0 ? "text-rose-600" : "text-text-secondary"
-                                            )}>
-                                                {trade.result > 0 ? '+' : ''}{trade.result.toFixed(2)}R
+                                            <td className="px-6 py-5 text-right">
+                                                <div className="flex flex-col items-end gap-0.5">
+                                                    <span className={cn(
+                                                        "font-bold text-base font-mono",
+                                                        (trade.result * (trade.risk_percent || 1)) > 0 ? "text-[#2563eb]" : (trade.result * (trade.risk_percent || 1)) < 0 ? "text-rose-600" : "text-text-secondary"
+                                                    )}>
+                                                        {(trade.result * (trade.risk_percent || 1)) > 0 ? '+' : ''}{(trade.result * (trade.risk_percent || 1)).toFixed(2)}R
+                                                    </span>
+                                                    <span className="text-xs text-text-secondary font-medium">
+                                                        Chart: {trade.result > 0 ? '+' : ''}{trade.result.toFixed(2)}R
+                                                    </span>
+                                                </div>
                                             </td>
 
                                             <td className="px-6 py-5 text-right text-xs text-text-secondary">{formatDate(trade.open_date)}</td>
@@ -285,9 +304,13 @@ const TradeHistory = () => {
                             {filteredTrades.length > 0 && (
                                 <tfoot className="bg-slate-50 border-t border-slate-200">
                                     <tr>
-                                        <td colSpan="8" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Result</td>
-                                        <td className={cn("px-6 py-4 text-right font-bold text-lg font-mono", totalResult >= 0 ? "text-[#2563eb]" : "text-rose-600")}>
-                                            {totalResult > 0 ? '+' : ''}{totalResult.toFixed(2)}R
+                                        <td colSpan="9" className="px-6 py-4 text-right font-bold text-text-secondary text-xs uppercase tracking-wider">Total Result</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                <span className={cn("font-bold text-lg font-mono", totalFinalResult >= 0 ? "text-[#2563eb]" : "text-rose-600")}>
+                                                    {totalFinalResult > 0 ? '+' : ''}{totalFinalResult.toFixed(2)}R
+                                                </span>
+                                            </div>
                                         </td>
                                         <td colSpan="2"></td>
                                     </tr>

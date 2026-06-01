@@ -12,7 +12,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
         close_date: '',
         sl: '',
         ft: '',
-        timeframe: '15M'
+        timeframe: '15M',
+        risk_percent: 1
     });
     const [saving, setSaving] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -26,7 +27,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                 close_date: trade.close_date ? new Date(trade.close_date).toISOString().split('T')[0] : '',
                 sl: trade.sl || '',
                 ft: trade.ft || '',
-                timeframe: trade.timeframe || '15M'
+                timeframe: trade.timeframe || '15M',
+                risk_percent: trade.risk_percent || 1
             });
             setShowDeleteConfirm(false); // Reset warning when trade changes
         }
@@ -44,7 +46,7 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: name === 'result' ? parseFloat(value) || 0 : value
+            [name]: name === 'result' ? parseFloat(value) || 0 : (name === 'risk_percent' ? parseFloat(value) : value)
         }));
 
         // If user changes status away from delete, hide the warning
@@ -76,7 +78,8 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                     result: parseFloat(formData.result),
                     img_after: formData.img_after,
                     close_date: finalCloseDate,
-                    timeframe: formData.timeframe
+                    timeframe: formData.timeframe,
+                    risk_percent: formData.risk_percent
                 };
 
                 // If status is 'be' (Ganti Final Target), update SL and FT if provided
@@ -191,6 +194,25 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                             </div>
                         </div>
 
+                        {/* Risk Percent */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Risk %</label>
+                            <div className="flex gap-6 mt-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="0.5" checked={String(formData.risk_percent) === '0.5'} onChange={handleChange} disabled={formData.status === 'delete'} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">0.5%</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="1" checked={String(formData.risk_percent) === '1'} onChange={handleChange} disabled={formData.status === 'delete'} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">1%</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="2" checked={String(formData.risk_percent) === '2'} onChange={handleChange} disabled={formData.status === 'delete'} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">2%</span>
+                                </label>
+                            </div>
+                        </div>
+
                         {/* Status */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">New Status</label>
@@ -275,6 +297,9 @@ const EditTradeModal = ({ isOpen, onClose, trade, onUpdate }) => {
                                     )}
                                     placeholder="0.00"
                                 />
+                                {formData.result !== 0 && (
+                                    <p className="text-xs text-text-secondary mt-1">Final R: <strong>{(formData.result * formData.risk_percent).toFixed(2)}R</strong></p>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
