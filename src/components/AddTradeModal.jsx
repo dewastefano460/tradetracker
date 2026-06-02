@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Plus, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
+const AddTradeModal = ({ isOpen, onClose, onAdd, saving, currentFilter }) => {
     const [newTrade, setNewTrade] = useState({
         pair: '',
         op: '',
@@ -19,9 +19,15 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
         const handleEsc = (e) => {
             if (e.key === 'Escape') onClose();
         };
-        if (isOpen) window.addEventListener('keydown', handleEsc);
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+            // Set default timeframe based on filter
+            if (currentFilter && currentFilter !== 'All') {
+                setNewTrade(prev => ({ ...prev, timeframe: currentFilter }));
+            }
+        }
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, currentFilter]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -83,23 +89,6 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Risk %</label>
-                            <div className="flex gap-6 mt-2">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="risk_percent" value="0.5" checked={String(newTrade.risk_percent) === '0.5'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
-                                    <span className="text-sm font-medium text-text-primary">0.5%</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="risk_percent" value="1" checked={String(newTrade.risk_percent) === '1'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
-                                    <span className="text-sm font-medium text-text-primary">1%</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="risk_percent" value="2" checked={String(newTrade.risk_percent) === '2'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
-                                    <span className="text-sm font-medium text-text-primary">2%</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
                             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Open Price</label>
                             <input
                                 type="number"
@@ -134,6 +123,23 @@ const AddTradeModal = ({ isOpen, onClose, onAdd, saving }) => {
                         </div>
                     </div>
                     <div className="space-y-4 pt-2 border-t border-slate-100">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Risk %</label>
+                            <div className="flex gap-6 mt-2 mb-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="0.5" checked={String(newTrade.risk_percent) === '0.5'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">0.5%</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="1" checked={String(newTrade.risk_percent) === '1'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">1%</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="risk_percent" value="2" checked={String(newTrade.risk_percent) === '2'} onChange={handleInputChange} className="w-4 h-4 text-[#2563eb] focus:ring-[#2563eb] border-gray-300" />
+                                    <span className="text-sm font-medium text-text-primary">2%</span>
+                                </label>
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Before Chart (URL)</label>
                             <input

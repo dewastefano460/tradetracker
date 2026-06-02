@@ -236,7 +236,7 @@ const RunningTrades = () => {
         <>
             <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} content={viewModalContent} />
             {selectedTrade && <EditTradeModal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} trade={selectedTrade} onUpdate={handleUpdateTrade} />}
-            <AddTradeModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAddTrade} saving={saving} />
+            <AddTradeModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAddTrade} saving={saving} currentFilter={filterTimeframe} />
 
             <div className="space-y-8 pb-12 page-enter">
                 {/* Header & Title */}
@@ -418,7 +418,7 @@ const RunningTrades = () => {
                                             <td className="px-6 py-5 font-mono text-xs text-text-secondary">{trade.ft || '-'}</td>
 
 
-                                            <td className="px-6 py-5">
+                                            <td className="px-6 py-5 whitespace-nowrap">
                                                 <span className={cn(
                                                     "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize",
                                                     trade.status === 'running' ? "bg-blue-100 text-blue-700" :
